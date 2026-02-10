@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+import os
 from typing import List, Sequence
+
+from google.genai import types
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+
 
 from .base import Embedder
 
@@ -8,11 +14,9 @@ from .base import Embedder
 class GeminiEmbeddings(Embedder):
     """
     Placeholder Gemini embeddings backend.
-
-    Wire this up to Google's Gemini API in a future iteration.
     """
 
-    def __init__(self, model_name: str = "text-embedding-004") -> None:
+    def __init__(self, model_name: str = "gemini-embedding-001") -> None:
         self.model_name = model_name
 
     @property
@@ -23,13 +27,13 @@ class GeminiEmbeddings(Embedder):
     def embed_texts(self, texts: Sequence[str]) -> List[List[float]]:
         """
         Synchronous wrapper around the Gemini embeddings API.
-
-        NOTE: This is a placeholder implementation; wire up proper auth and
-        error handling before using in production.
         """
         from google import genai
+        API_KEY = os.getenv("GEMINI_API_KEY")
+        if not API_KEY:
+            raise ValueError("GEMINI_API_KEY environment variable is not set")
 
-        client = genai.Client()
+        client = genai.Client(api_key=API_KEY)
         contents = list(texts)
         if not contents:
             contents = ["placeholder text for empty batch"]
@@ -37,12 +41,21 @@ class GeminiEmbeddings(Embedder):
         result = client.models.embed_content(
             model=self.model_name,
             contents=contents,
+            config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
         )
 
-        # The exact shape of `result.embeddings` depends on the SDK version.
-        # For now we assume it is already a List[List[float]].
+        df = pd.DataFrame(
+            cosine_similarity([e.values for e in result.embeddings]),
+            index=texts,
+            columns=texts,
+        )
+
+        print()
+        print(df)
+        print()
+
         embeddings = result.embeddings
-        return embeddings  # type: ignore[return-value]
+        return embeddings
 
         
 

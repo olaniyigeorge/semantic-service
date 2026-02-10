@@ -1,12 +1,5 @@
-{       
-  // Windows
-  "python.defaultInterpreterPath": "/venv/Scripts/python.exe",
-
-  // Linux and macOS
-  "python.defaultInterpreterPath.linux": "/venv/bin/python",
-  "python.defaultInterpreterPath.osx": "/venv/bin/python",
-
-  "python.analysis.extraPaths": ["./"],
-  "python.analysis.autoSearchPaths": true,
-  "python.analysis.useLibraryCodeForTypes": true
+{
+  "python.defaultInterpreterPath": "./venv/bin/python",
+  "python.envFile": "${workspaceFolder}/.env",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
 }

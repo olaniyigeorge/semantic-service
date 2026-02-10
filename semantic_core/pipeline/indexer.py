@@ -29,20 +29,49 @@ class IndexPipeline:
 
     def index(self, doc: NormalizedDocument) -> int:
         """
-        Chunk, embed, and upsert a single normalized document.
+        Chunk, embed, and (optionally) upsert a single normalized document.
         """
-        base_meta = self.metadata   # .build_document_metadata(doc.ref)
+
+        base_meta = self.metadata  # or: self.metadata.build_document_metadata(doc.ref)
+
+        # --- Chunk ---
         chunks = self.chunker.chunk(doc, base_metadata=base_meta)
 
-        for c in chunks:
-            print(f"\nChunk: {c.__dict__}\n\n")
-        # print(f"\n\nChunks: {[c.__dict__ for c in chunks]}\n\n")
+        print("\n===== CHUNKS =====\n")
 
+        for i, c in enumerate(chunks):
+            print(f"[Chunk {i}]")
+            print(f"ID: {c.chunk_id}")
+            print(f"Doc ID: {c.doc_id}")
+            print(f"Text length: {len(c.text)}")
+            print(f"Text preview: {c.text[:10]}")
+            print(f"Metadata: {c.metadata}")
+            print(f"Page: {c.page_number}")
+            print(f"Chars: {c.start_char} -> {c.end_char}")
+            print("-" * 60)
+
+        # --- Embed ---
         vectors = self.embedder.embed_texts([c.text for c in chunks])
+
+        # --- Pair chunks + vectors ---
         embedded: List[EmbeddedChunk] = [
-            EmbeddedChunk(chunk=c, vector=v) for c, v in zip(chunks, vectors)
+            EmbeddedChunk(chunk=c, vector=v)
+            for c, v in zip(chunks, vectors)
         ]
 
-        self.store.upsert(embedded)
+        print("\n===== EMBEDDED CHUNKS =====\n")
+
+        for i, e in enumerate(embedded):
+            vec = e.vector.values if hasattr(e.vector, "values") else e.vector
+
+            print(f"[Embedded {i}]")
+            print(f"Chunk ID: {e.chunk.chunk_id}")
+            print(f"First 8 Vector dims: {vec[:8]}")
+            print("-" * 60)
+
+        # --- Store (disabled for debugging) ---
+        # self.store.upsert(embedded)
+
         return len(embedded)
+
 
