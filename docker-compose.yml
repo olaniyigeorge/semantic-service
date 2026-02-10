@@ -1,0 +1,12 @@
+services:
+  api:
+    build: .
+    container_name: semantic-service-api
+    ports:
+      - "8000:8000"
+    environment:
+      # Example env vars; wire these up as needed.
+      - GEMINI_MODEL=text-embedding-004
+    volumes:
+      - .:/app
+    restart: unless-stopped
