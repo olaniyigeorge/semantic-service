@@ -31,6 +31,8 @@ def _extract_text_from_file(doc_type: str, data: bytes) -> str:
             return readers.read_docx(data)
         case "pdf":
             return readers.read_pdf(data)
+        case "html":
+            return readers.read_txt(data)
         case _:
             raise HTTPException(status_code=400, detail=f"Unsupported doc_type: {doc_type}")
 
@@ -134,12 +136,11 @@ async def ingest_document(
 
     # print(f"Document Ref {doc_ref} \n\n\n\nwith normalised {normalized}")
 
-
     return IngestResponse(doc_id=doc_id, checksum=checksum)
 
 
 @router.post(
-    "index_documents",
+    "/index_documents",
     status_code=status.HTTP_202_ACCEPTED,
     summary="Submit documents for indexing",
 )

@@ -1,5 +1,3 @@
-# semantic_core/models.py (or semantic_api/schemas.py)
-from __future__ import annotations
 from typing import Any, Dict, Literal, Optional
 from pydantic import BaseModel, Field
 
@@ -20,7 +18,7 @@ class DocumentIn(BaseModel):
 
 
 
-DocType = Literal["pdf", "txt", "docx", "csv", "json", "raw"]
+DocType = Literal["pdf", "txt", "docx", "csv", "json", "raw", "html"]
 Product = Literal["coopwise", "winnov8"]
 
 

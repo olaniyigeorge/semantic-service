@@ -43,17 +43,7 @@ class GeminiEmbeddings(Embedder):
             contents=contents,
             config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
         )
-
-        df = pd.DataFrame(
-            cosine_similarity([e.values for e in result.embeddings]),
-            index=texts,
-            columns=texts,
-        )
-
-        print()
-        print(df)
-        print()
-
+        
         embeddings = result.embeddings
         return embeddings
 
