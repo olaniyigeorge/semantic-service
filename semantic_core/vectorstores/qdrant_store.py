@@ -226,14 +226,25 @@ class QDrantVectorStore(VectorStore):
         limit = getattr(query, 'top_k', 10)
         
         # Perform search
-        search_results = self.client.search(
+        # search_results = self.client.search(
+        #     collection_name=self.collection_name,
+        #     query_vector=qvec,
+        #     query_filter=query_filter,
+        #     limit=limit,
+        #     with_payload=True,
+        #     with_vectors=False  # Set to True if you need vectors in results
+        # )
+
+        search_results = self.client.query_points(
             collection_name=self.collection_name,
-            query_vector=qvec,
+            query=qvec,
             query_filter=query_filter,
             limit=limit,
-            with_payload=True,
-            with_vectors=False  # Set to True if you need vectors in results
+
         )
+
+        print(f"\n\nSearch results: \n{search_results}\n\n")
+
         
         # Convert to SearchResult objects
         results = []
