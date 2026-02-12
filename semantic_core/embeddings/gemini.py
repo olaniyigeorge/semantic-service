@@ -21,7 +21,7 @@ class GeminiEmbeddings(Embedder):
 
     @property
     def dim(self) -> int:
-        # TODO: return the actual embedding dimensionality once known
+        # TODO: Implement actual dimension detection logic based on the model
         return 0
 
     def embed_texts(self, texts: Sequence[str]) -> List[List[float]]:
@@ -41,7 +41,9 @@ class GeminiEmbeddings(Embedder):
         result = client.models.embed_content(
             model=self.model_name,
             contents=contents,
-            config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
+            config=types.EmbedContentConfig(
+                output_dimensionality=self.dim if self.dim > 0 else 768,
+                task_type="SEMANTIC_SIMILARITY")
         )
         
         embeddings = result.embeddings

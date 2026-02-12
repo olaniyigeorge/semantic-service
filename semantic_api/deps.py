@@ -3,11 +3,12 @@ import os
 import logging
 from functools import lru_cache
 
-from typing import Union, Literal
+from typing import Literal
 from fastapi import Depends
 from qdrant_client import QdrantClient
 
 from semantic_core.embeddings.gemini import GeminiEmbeddings
+from semantic_core.ingest.normalizer import DocumentNormalizer
 from semantic_core.pipeline.searcher import SearchPipeline
 from semantic_core.pipeline.indexer import IndexPipeline
 from semantic_core.vectorstores.base import VectorStore
@@ -24,12 +25,11 @@ logger = logging.getLogger(__name__)
 
 @lru_cache
 def get_embeddings() -> GeminiEmbeddings:
-    # Switch case of embedding models. Gemini by default
+    # TODO: Switch case of embedding models. Gemini by default
     return GeminiEmbeddings()
 
 @lru_cache
 def get_chunker() -> Chunker:
-    # TODO: swap to PgVectorStore in production
     return Chunker()
 
 
@@ -86,50 +86,8 @@ def _create_qdrant_store() -> QDrantVectorStore:
     return QDrantVectorStore(
         client=client,
         collection_name=collection_name,
-        embedding_model=embeddings
-    )
-
-
-def _create_faiss_store() -> FaissVectorStore:
-    """Create and return a FAISS vector store instance."""
-    logger.info("Creating FAISS vector store")
-    return FaissVectorStore()
-
-
-def _create_pgvector_store() -> PgVectorStore:
-    """
-    Create and return a PgVector store instance.
-    
-    Configuration via environment variables:
-    - PGVECTOR_CONNECTION_STRING or individual components:
-    - PGVECTOR_HOST: PostgreSQL host (default: localhost)
-    - PGVECTOR_PORT: PostgreSQL port (default: 5432)
-    - PGVECTOR_DATABASE: Database name (default: vector_db)
-    - PGVECTOR_USER: Database user (default: postgres)
-    - PGVECTOR_PASSWORD: Database password
-    - PGVECTOR_TABLE_NAME: Table name for vectors (default: embeddings)
-    """
-    # Try full connection string first
-    connection_string = os.getenv("PGVECTOR_CONNECTION_STRING")
-    
-    if not connection_string:
-        # Build from individual components
-        host = os.getenv("PGVECTOR_HOST", "localhost")
-        port = os.getenv("PGVECTOR_PORT", "5432")
-        database = os.getenv("PGVECTOR_DATABASE", "vector_db")
-        user = os.getenv("PGVECTOR_USER", "postgres")
-        password = os.getenv("PGVECTOR_PASSWORD", "")
-        
-        connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
-    
-    table_name = os.getenv("PGVECTOR_TABLE_NAME", "embeddings")
-    embeddings = get_embeddings()
-    
-    logger.info(f"Creating PgVector store with table: {table_name}")
-    return PgVectorStore(
-        connection_string=connection_string,
-        table_name=table_name,
-        embedding_model=embeddings
+        embedding_model=embeddings,
+        vector_size=None  
     )
 
 
@@ -185,6 +143,50 @@ def get_vector_store() -> VectorStore:
 
 
 
+def _create_pgvector_store() -> PgVectorStore:
+    """
+    Create and return a PgVector store instance.
+    
+    Configuration via environment variables:
+    - PGVECTOR_CONNECTION_STRING or individual components:
+    - PGVECTOR_HOST: PostgreSQL host (default: localhost)
+    - PGVECTOR_PORT: PostgreSQL port (default: 5432)
+    - PGVECTOR_DATABASE: Database name (default: vector_db)
+    - PGVECTOR_USER: Database user (default: postgres)
+    - PGVECTOR_PASSWORD: Database password
+    - PGVECTOR_TABLE_NAME: Table name for vectors (default: embeddings)
+    """
+    # Try full connection string first
+    connection_string = os.getenv("PGVECTOR_CONNECTION_STRING")
+    
+    if not connection_string:
+        # Build from individual components
+        host = os.getenv("PGVECTOR_HOST", "localhost")
+        port = os.getenv("PGVECTOR_PORT", "5432")
+        database = os.getenv("PGVECTOR_DATABASE", "vector_db")
+        user = os.getenv("PGVECTOR_USER", "postgres")
+        password = os.getenv("PGVECTOR_PASSWORD", "")
+        
+        connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+    
+    table_name = os.getenv("PGVECTOR_TABLE_NAME", "embeddings")
+    embeddings = get_embeddings()
+    
+    logger.info(f"Creating PgVector store with table: {table_name}")
+    return PgVectorStore(
+        connection_string=connection_string,
+        table_name=table_name,
+        embedding_model=embeddings
+    )
+
+
+def _create_faiss_store() -> FaissVectorStore:
+    """Create and return a FAISS vector store instance."""
+    logger.info("Creating FAISS vector store")
+    return FaissVectorStore()
+
+
+
 # Helper function to clear the cache and reinitialize
 def reset_vector_store() -> None:
     """
@@ -197,14 +199,16 @@ def reset_vector_store() -> None:
 
 
 
+def get_document_normalizer() -> DocumentNormalizer:
+    return DocumentNormalizer()
+
 
 
 # ------- PIPELINES -------
 
-def get_search_pipeline(
-    vector_store: FaissVectorStore = Depends(get_vector_store),
-) -> SearchPipeline:
+def get_search_pipeline() -> SearchPipeline:
     embedder = get_embeddings()
+    vector_store = get_vector_store()
     return SearchPipeline(embedder=embedder, store=vector_store)
 
 

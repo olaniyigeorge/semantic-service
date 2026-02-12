@@ -37,7 +37,7 @@ class QDrantVectorStore(VectorStore):
         if vector_size is None:
             print("Auto-detecting vector size...")
             # Use a longer sample text to get actual embedding size
-            sample_vector = embedding_model.embed_query(
+            sample_vector = embedding_model.embed_texts(
                 "This is a longer sample text to ensure we get the correct embedding dimensions."
             )
             vector_size = len(self._extract_vector(sample_vector))
@@ -50,7 +50,7 @@ class QDrantVectorStore(VectorStore):
             client.create_collection(
                 collection_name=collection_name,
                 vectors_config=VectorParams(
-                    size=vector_size,
+                    size=vector_size if vector_size < 128 else 768, 
                     distance=Distance.COSINE
                 )
             )
@@ -88,7 +88,12 @@ class QDrantVectorStore(VectorStore):
         
         # Case 2: Already a list
         elif isinstance(vector, list):
-            return [float(v) for v in vector]
+            # Handle list of ContentEmbedding objects or similar with .values
+            if vector and hasattr(vector[0], 'values'):
+                return self._extract_vector(vector[0].values)
+            # Handle list of floats/numbers
+            else:
+                return [float(v) for v in vector]
         
         # Case 3: Numpy array
         elif hasattr(vector, 'tolist'):
@@ -152,7 +157,6 @@ class QDrantVectorStore(VectorStore):
                 payload=payload
             )
             
-            print(f"\nAppending point: {point_id}: \nPoint {point.__dict__}\n Dim: {len(vector)}\n")
             points.append(point)
         
         try:

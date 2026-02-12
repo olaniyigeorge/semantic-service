@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Literal
-import uuid
-
 
 DocType = Literal[
     "policy",
@@ -27,7 +25,7 @@ class DocumentRef:
     """
 
     doc_id: str
-    source: str  # filename/url/internal
+    source: str  # filename/url/path/etc. for traceability
     doc_type: DocType
     created_at: datetime
     checksum: str  # stable dedupe key

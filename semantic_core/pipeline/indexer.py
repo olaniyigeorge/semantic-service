@@ -37,18 +37,10 @@ class IndexPipeline:
         # --- Chunk ---
         chunks = self.chunker.chunk(doc, base_metadata=base_meta)
 
-        # print("\n===== CHUNKS =====\n")
 
-        # for i, c in enumerate(chunks):
-        #     print(f"[Chunk {i}]")
-        #     print(f"ID: {c.chunk_id}")
-        #     print(f"Doc ID: {c.doc_id}")
-        #     print(f"Text length: {len(c.text)}")
-        #     print(f"Text preview: {c.text[:40]}")
-        #     print(f"Metadata: {c.metadata}")
-        #     print(f"Page: {c.page_number}")
-        #     print(f"Chars: {c.start_char} -> {c.end_char}")
-        #     print("-" * 60)
+        print("\nChunks:")
+        for i, c in enumerate(chunks):
+            print(f"Chunk {i}: {c.chunk_id}, length={len(c.text)}")
 
         # --- Embed ---
         vectors = self.embedder.embed_texts([c.text for c in chunks])
@@ -59,17 +51,7 @@ class IndexPipeline:
             for c, v in zip(chunks, vectors)
         ]
 
-        # print("\n===== EMBEDDED CHUNKS =====\n")
-
-        # for i, e in enumerate(embedded):
-        #     vec = e.vector.values if hasattr(e.vector, "values") else e.vector
-
-        #     print(f"[Embedded {i}]")
-        #     print(f"Chunk ID: {e.chunk.chunk_id}")
-        #     print(f"First 8 Vector dims: {vec[:8]}")
-        #     print("-" * 60)
-
-        # # --- Store (disabled for debugging) ---
+        # --- Store (disabled for debugging) ---
         self.store.upsert(embedded)
 
         return len(embedded)
