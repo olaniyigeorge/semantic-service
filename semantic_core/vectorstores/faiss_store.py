@@ -27,6 +27,6 @@ class FaissVectorStore(VectorStore):
 
     def delete_by_doc(self, doc_id: str) -> None:
         # TODO: remove all entries belonging to the given document, if supported
-        raise NotImplementedError("FaissVectorStore.delete_by_doc is not implemented yet")
-
-
+        raise NotImplementedError(
+            "FaissVectorStore.delete_by_doc is not implemented yet"
+        )

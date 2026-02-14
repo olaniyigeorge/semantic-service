@@ -37,7 +37,6 @@ class IndexPipeline:
         # --- Chunk ---
         chunks = self.chunker.chunk(doc, base_metadata=base_meta)
 
-
         print("\nChunks:")
         for i, c in enumerate(chunks):
             print(f"Chunk {i}: {c.chunk_id}, length={len(c.text)}")
@@ -47,13 +46,10 @@ class IndexPipeline:
 
         # --- Pair chunks + vectors ---
         embedded: List[EmbeddedChunk] = [
-            EmbeddedChunk(chunk=c, vector=v)
-            for c, v in zip(chunks, vectors)
+            EmbeddedChunk(chunk=c, vector=v) for c, v in zip(chunks, vectors)
         ]
 
         # --- Store (disabled for debugging) ---
         self.store.upsert(embedded)
 
         return len(embedded)
-
-

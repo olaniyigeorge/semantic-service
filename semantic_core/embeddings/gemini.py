@@ -29,6 +29,7 @@ class GeminiEmbeddings(Embedder):
         Synchronous wrapper around the Gemini embeddings API.
         """
         from google import genai
+
         API_KEY = os.getenv("GEMINI_API_KEY")
         if not API_KEY:
             raise ValueError("GEMINI_API_KEY environment variable is not set")
@@ -43,12 +44,9 @@ class GeminiEmbeddings(Embedder):
             contents=contents,
             config=types.EmbedContentConfig(
                 output_dimensionality=self.dim if self.dim > 0 else 768,
-                task_type="SEMANTIC_SIMILARITY")
+                task_type="SEMANTIC_SIMILARITY",
+            ),
         )
-        
+
         embeddings = result.embeddings
         return embeddings
-
-        
-
-

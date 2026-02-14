@@ -18,5 +18,3 @@ async def search(
     Run a semantic search over indexed content.
     """
     return pipeline.search(query)
-
-

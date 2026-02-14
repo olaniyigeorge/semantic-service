@@ -21,8 +21,7 @@ class Chunker(Protocol):
         doc: NormalizedDocument,
         *,
         base_metadata: Dict[str, Any],
-    ) -> List[Chunk]:
-        ...
+    ) -> List[Chunk]: ...
 
 
 def _chunk_id(*parts: str) -> str:
@@ -52,7 +51,9 @@ class TextChunker:
             separators=["\n\n", "\n", ". ", " ", ""],
         )
 
-    def chunk(self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]) -> List[Chunk]:
+    def chunk(
+        self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]
+    ) -> List[Chunk]:
         pieces = self._splitter.split_text(doc.text or "")
         out: List[Chunk] = []
 
@@ -104,7 +105,9 @@ class JsonChunker:
 
     text_chunker: TextChunker
 
-    def chunk(self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]) -> List[Chunk]:
+    def chunk(
+        self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]
+    ) -> List[Chunk]:
         raw = doc.text or ""
         try:
             obj = json.loads(raw)
@@ -143,7 +146,9 @@ class HtmlChunker:
 
     text_chunker: TextChunker
 
-    def chunk(self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]) -> List[Chunk]:
+    def chunk(
+        self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]
+    ) -> List[Chunk]:
         from bs4 import BeautifulSoup
 
         soup = BeautifulSoup(doc.text or "", "html.parser")
@@ -189,7 +194,9 @@ class PdfChunker:
 
     text_chunker: TextChunker
 
-    def chunk(self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]) -> List[Chunk]:
+    def chunk(
+        self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]
+    ) -> List[Chunk]:
         if not doc.pages:
             # fallback: big string chunking
             chunks = self.text_chunker.chunk(doc, base_metadata=base_metadata)
@@ -221,7 +228,10 @@ class PdfChunker:
                         chunk_id=_chunk_id(doc.ref.checksum, f"p{page_idx}_{i}"),
                         doc_id=doc.ref.doc_id,
                         text=c.text,
-                        metadata=_merge_meta(c.metadata, {"pdf_page_aware": True, "page_number": page_idx}),
+                        metadata=_merge_meta(
+                            c.metadata,
+                            {"pdf_page_aware": True, "page_number": page_idx},
+                        ),
                         page_number=page_idx,
                         start_char=None,
                         end_char=None,
@@ -239,7 +249,9 @@ class RouterChunker:
     by_doc_type: Mapping[str, Chunker]
     fallback: Chunker
 
-    def chunk(self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]) -> List[Chunk]:
+    def chunk(
+        self, doc: NormalizedDocument, *, base_metadata: Dict[str, Any]
+    ) -> List[Chunk]:
         impl = self.by_doc_type.get(doc.ref.doc_type, self.fallback)
         return impl.chunk(doc, base_metadata=base_metadata)
 
@@ -254,7 +266,7 @@ def build_default_chunker() -> RouterChunker:
             "txt": text,
             "raw": text,
             "docx": text,  # later you can make this structure-aware
-            "csv": text,   # later you can make this row-aware
+            "csv": text,  # later you can make this row-aware
             "json": JsonChunker(text_chunker=text),
             "html": HtmlChunker(text_chunker=text),
             "pdf": PdfChunker(text_chunker=text),

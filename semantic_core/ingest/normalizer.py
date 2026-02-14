@@ -12,14 +12,17 @@ from fastapi import HTTPException, UploadFile
 from semantic_core.models import DocumentRef, NormalizedDocument
 from semantic_core.ingest import readers
 
+
 def normalize_text(text: str) -> str:
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
     return text
 
+
 def sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
 
 def _extract_text_from_file(doc_type: str, data: bytes) -> str:
     match doc_type:
@@ -36,15 +39,15 @@ def _extract_text_from_file(doc_type: str, data: bytes) -> str:
         case "html":
             return readers.read_txt(data)
         case _:
-            raise HTTPException(status_code=400, detail=f"Unsupported doc_type: {doc_type}")
-
-
-
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported doc_type: {doc_type}"
+            )
 
 
 @dataclass(frozen=True)
 class FileInput:
     """Framework-agnostic file container."""
+
     data: bytes
     filename: Optional[str] = None
 
@@ -67,7 +70,9 @@ class DocumentNormalizer:
         Returns NormalizedDocument.
         """
         if upload_file and file_input:
-            raise HTTPException(status_code=400, detail="Provide only one of upload_file or file_input")
+            raise HTTPException(
+                status_code=400, detail="Provide only one of upload_file or file_input"
+            )
 
         if upload_file is not None:
             data = await upload_file.read()
@@ -95,7 +100,9 @@ class DocumentNormalizer:
         elif file_input is not None:
             text = _extract_text_from_file(payload.doc_type, file_input.data)
         else:
-            raise HTTPException(status_code=422, detail="Provide one of: raw_text, json_text, or file")
+            raise HTTPException(
+                status_code=422, detail="Provide one of: raw_text, json_text, or file"
+            )
 
         # 2) normalize + validate
         text = normalize_text(text)

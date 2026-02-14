@@ -24,6 +24,7 @@ class CoopWiseMetadataBuilder(MetadataBuilder):
         meta.update(ref.extra or {})
         return meta
 
+
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -35,5 +36,3 @@ def normalize_coopwise_metadata(raw: Dict[str, Any]) -> Dict[str, Any]:
     """
     # TODO: implement Coopwise-specific normalization rules
     return raw
-
-

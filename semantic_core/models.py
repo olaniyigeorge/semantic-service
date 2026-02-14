@@ -94,7 +94,3 @@ class SearchResult:
     metadata: Dict[str, Any]
     page_number: Optional[int] = None
     vector: Optional[List[float]] = None
-
-
-
-

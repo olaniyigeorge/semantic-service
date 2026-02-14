@@ -15,9 +15,6 @@ class DocumentIn(BaseModel):
     )
 
 
-
-
-
 DocType = Literal["pdf", "txt", "docx", "csv", "json", "raw", "html"]
 Product = Literal["coopwise", "winnov8"]
 

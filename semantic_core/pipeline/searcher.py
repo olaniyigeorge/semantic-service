@@ -21,7 +21,5 @@ class SearchPipeline:
         Embed the query text and execute a vector search against the store.
         """
         qvec = self._embedder.embed_texts([query.query])[0]
-        
+
         return self._store.query(qvec, query)
-
-

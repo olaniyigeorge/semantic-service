@@ -29,5 +29,3 @@ class PgVectorStore(VectorStore):
         raise NotImplementedError(
             "PgVectorStore.delete_by_document_ids is not implemented yet"
         )
-
-

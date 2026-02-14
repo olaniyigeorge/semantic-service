@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from typing import Any, List, Optional
-from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue, MatchAny, Range
+from qdrant_client.models import (
+    Distance,
+    VectorParams,
+    PointStruct,
+    Filter,
+    FieldCondition,
+    MatchValue,
+    MatchAny,
+    Range,
+)
 
 from qdrant_client import QdrantClient
 from semantic_core.models import EmbeddedChunk, SearchQuery, SearchResult
@@ -18,12 +27,12 @@ class QDrantVectorStore(VectorStore):
         self,
         client: QdrantClient,
         collection_name: str,
-        embedding_model: Any,  
+        embedding_model: Any,
         vector_size: Optional[int] = None,
     ) -> None:
         """
         Initialize the Qdrant vector store.
-        
+
         Args:
             client: QdrantClient instance
             collection_name: Name of the collection to use
@@ -33,7 +42,7 @@ class QDrantVectorStore(VectorStore):
         self.client = client
         self.collection_name = collection_name
         self.embedding_model = embedding_model
-        
+
         # Auto-detect vector size if not provided
         if vector_size is None:
             print("Auto-detecting vector size...")
@@ -43,67 +52,67 @@ class QDrantVectorStore(VectorStore):
             )
             vector_size = len(self._extract_vector(sample_vector))
             print(f"Detected vector size: {vector_size}")
-        
+
         self.vector_size = vector_size
-        
+
         # Create collection if it doesn't exist
         if not client.collection_exists(collection_name):
             client.create_collection(
                 collection_name=collection_name,
                 vectors_config=VectorParams(
-                    size=vector_size if vector_size < 128 else 768, 
-                    distance=Distance.COSINE
-                )
+                    size=vector_size if vector_size < 128 else 768,
+                    distance=Distance.COSINE,
+                ),
             )
 
     def _extract_vector(self, vector) -> List[float]:
         """
         Extract vector values from various formats.
-        
+
         Handles:
         - ContentEmbedding objects (Vertex AI)
         - Plain lists
         - Numpy arrays
         - Other embedding objects with .values attribute
-        
+
         Args:
             vector: Vector in any supported format
-            
+
         Returns:
             List of float values
-            
+
         Raises:
             ValueError: If vector format is not supported
         """
         # Case 1: ContentEmbedding or similar object with .values attribute
-        if hasattr(vector, 'values'):
+        if hasattr(vector, "values"):
             values = vector.values
             # Ensure it's a list of floats
             if isinstance(values, list):
                 return [float(v) for v in values]
             # Handle numpy array
-            elif hasattr(values, 'tolist'):
+            elif hasattr(values, "tolist"):
                 return [float(v) for v in values.tolist()]
             else:
                 return [float(v) for v in list(values)]
-        
+
         # Case 2: Already a list
         elif isinstance(vector, list):
             # Handle list of ContentEmbedding objects or similar with .values
-            if vector and hasattr(vector[0], 'values'):
+            if vector and hasattr(vector[0], "values"):
                 return self._extract_vector(vector[0].values)
             # Handle list of floats/numbers
             else:
                 return [float(v) for v in vector]
-        
+
         # Case 3: Numpy array
-        elif hasattr(vector, 'tolist'):
+        elif hasattr(vector, "tolist"):
             return [float(v) for v in vector.tolist()]
-        
+
         # Case 4: Tuple (convert to list)
         elif isinstance(vector, tuple):
             return [float(v) for v in vector]
-        
+
         # Case 5: Unknown format
         else:
             raise ValueError(
@@ -136,7 +145,9 @@ class QDrantVectorStore(VectorStore):
                 continue
 
             # IN / any-of
-            if isinstance(value, (list, tuple, set)) and all(isinstance(v, (str, int, bool)) for v in value):
+            if isinstance(value, (list, tuple, set)) and all(
+                isinstance(v, (str, int, bool)) for v in value
+            ):
                 conditions.append(
                     FieldCondition(
                         key=field_key,
@@ -146,11 +157,19 @@ class QDrantVectorStore(VectorStore):
                 continue
 
             # Range example: {"gte": 10, "lte": 20}
-            if isinstance(value, dict) and any(k in value for k in ("gt", "gte", "lt", "lte")):
+            if isinstance(value, dict) and any(
+                k in value for k in ("gt", "gte", "lt", "lte")
+            ):
                 conditions.append(
                     FieldCondition(
                         key=field_key,
-                        range=Range(**{k: v for k, v in value.items() if k in ("gt", "gte", "lt", "lte")}),
+                        range=Range(
+                            **{
+                                k: v
+                                for k, v in value.items()
+                                if k in ("gt", "gte", "lt", "lte")
+                            }
+                        ),
                     )
                 )
                 continue
@@ -160,11 +179,10 @@ class QDrantVectorStore(VectorStore):
 
         return Filter(must=conditions) if conditions else None
 
-
     def upsert(self, items: List[EmbeddedChunk]) -> None:
         """
         Insert or update embedded chunks in the underlying store.
-        
+
         Args:
             items: List of EmbeddedChunk objects to upsert
         """
@@ -172,19 +190,23 @@ class QDrantVectorStore(VectorStore):
             print.warning("No items to upsert")
             return
 
-        print(f"Upserting {len(items)} items to Qdrant collection '{self.collection_name}'")
-        
+        print(
+            f"Upserting {len(items)} items to Qdrant collection '{self.collection_name}'"
+        )
+
         points = []
         for item in items:
             # Get the chunk_id (SHA256 hash string)
-            chunk_id = getattr(item, 'chunk_id', None) or getattr(item.chunk, 'chunk_id', None)
-            
+            chunk_id = getattr(item, "chunk_id", None) or getattr(
+                item.chunk, "chunk_id", None
+            )
+
             # Generate a deterministic UUID from the chunk_id
             if chunk_id:
                 point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, chunk_id))
             else:
                 point_id = str(uuid.uuid4())
-            
+
             # Extract the actual vector values
             # Handle different vector formats (ContentEmbedding, list, numpy array, etc.)
             vector = self._extract_vector(item.vector)
@@ -194,38 +216,31 @@ class QDrantVectorStore(VectorStore):
                 "doc_id": item.chunk.doc_id,
                 "chunk_id": point_id,
                 "text": item.chunk.text,
-                "metadata": getattr(item.chunk, 'metadata', {}),
-                "page_number": getattr(item.chunk, 'page_number', None),
-                "start_char": getattr(item.chunk, 'start_char', None),
-                "end_char": getattr(item.chunk, 'end_char', None),
+                "metadata": getattr(item.chunk, "metadata", {}),
+                "page_number": getattr(item.chunk, "page_number", None),
+                "start_char": getattr(item.chunk, "start_char", None),
+                "end_char": getattr(item.chunk, "end_char", None),
             }
-            
+
             # Create point with vector and payload
-            point = PointStruct(
-                id=point_id,
-                vector=vector, 
-                payload=payload
-            )
-            
+            point = PointStruct(id=point_id, vector=vector, payload=payload)
+
             points.append(point)
-        
+
         try:
             # Upsert points to collection
-            self.client.upsert(
-                collection_name=self.collection_name,
-                points=points
+            self.client.upsert(collection_name=self.collection_name, points=points)
+            print(
+                f"Successfully upserted {len(points)} points to collection '{self.collection_name}'"
             )
-            print(f"Successfully upserted {len(points)} points to collection '{self.collection_name}'")
         except Exception as e:
             print(f"Error upserting to Qdrant: {e}")
             raise
 
-
-
     def delete_by_doc(self, doc_id: str) -> None:
         """
         Remove all chunks belonging to the given logical document.
-        
+
         Args:
             doc_id: Document ID to delete all chunks for
         """
@@ -233,28 +248,19 @@ class QDrantVectorStore(VectorStore):
         self.client.delete(
             collection_name=self.collection_name,
             points_selector=Filter(
-                must=[
-                    FieldCondition(
-                        key="doc_id",
-                        match=MatchValue(value=doc_id)
-                    )
-                ]
-            )
+                must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
+            ),
         )
 
-    def query(
-        self,
-        qvec: List[float],
-        query: SearchQuery
-    ) -> List[SearchResult]:
+    def query(self, qvec: List[float], query: SearchQuery) -> List[SearchResult]:
         """
         Run a vector similarity search using the provided query vector and
         additional filtering / ranking parameters.
-        
+
         Args:
             qvec: Query vector for similarity search
             query: SearchQuery object with additional parameters
-            
+
         Returns:
             List of SearchResult objects
         """
@@ -262,17 +268,16 @@ class QDrantVectorStore(VectorStore):
         query_filter = self._build_qdrant_filter(getattr(query, "filters", None))
 
         # Determine limit
-        limit = getattr(query, 'top_k', 10)
-        
+        limit = getattr(query, "top_k", 10)
+
         # Perform search
         search_results = self.client.query_points(
             collection_name=self.collection_name,
             query=qvec.values,
             query_filter=query_filter,
             limit=limit,
-
         )
-        
+
         # Convert to SearchResult objects
         results = []
         for hit in search_results.points:
@@ -282,10 +287,10 @@ class QDrantVectorStore(VectorStore):
                 text=hit.payload.get("text"),
                 score=hit.score,
                 metadata=hit.payload.get("metadata", {}),
-                vector=hit.vector if hasattr(hit, 'vector') else None
+                vector=hit.vector if hasattr(hit, "vector") else None,
             )
             results.append(result)
-        
+
         return results
 
     def delete_collection(self) -> None:
@@ -297,7 +302,7 @@ class QDrantVectorStore(VectorStore):
     def get_collection_info(self) -> dict:
         """
         Get information about the collection.
-        
+
         Returns:
             Dictionary with collection information
         """

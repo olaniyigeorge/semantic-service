@@ -13,4 +13,3 @@ class MetadataBuilder(Protocol):
     def build_document_metadata(self, ref: DocumentRef) -> Dict[str, Any]:
         """Metadata copied into every chunk (filters rely on this)."""
         ...
-

@@ -23,6 +23,7 @@ class Winnov8MetadataBuilder(MetadataBuilder):
         meta.update(ref.extra or {})
         return meta
 
+
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -34,5 +35,3 @@ def normalize_winnov8_metadata(raw: Dict[str, Any]) -> Dict[str, Any]:
     """
     # TODO: implement Winnov8-specific normalization rules
     return raw
-
-
