@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from typing import Any, List, Optional
-from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
+from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue, MatchAny, Range
+
 from qdrant_client import QdrantClient
 from semantic_core.models import EmbeddedChunk, SearchQuery, SearchResult
 from semantic_core.vectorstores.base import VectorStore
@@ -111,6 +112,55 @@ class QDrantVectorStore(VectorStore):
                 f"Got: {vector}"
             )
 
+    def _build_qdrant_filter(self, filters: dict) -> Filter | None:
+        if not filters:
+            return None
+
+        conditions = []
+
+        for key, value in filters.items():
+            # Skip empty filters
+            if value is None or value == {}:
+                continue
+
+            field_key = f"metadata.{key}"
+
+            # Simple exact match
+            if isinstance(value, (str, int, bool)):
+                conditions.append(
+                    FieldCondition(
+                        key=field_key,
+                        match=MatchValue(value=value),
+                    )
+                )
+                continue
+
+            # IN / any-of
+            if isinstance(value, (list, tuple, set)) and all(isinstance(v, (str, int, bool)) for v in value):
+                conditions.append(
+                    FieldCondition(
+                        key=field_key,
+                        match=MatchAny(any=list(value)),
+                    )
+                )
+                continue
+
+            # Range example: {"gte": 10, "lte": 20}
+            if isinstance(value, dict) and any(k in value for k in ("gt", "gte", "lt", "lte")):
+                conditions.append(
+                    FieldCondition(
+                        key=field_key,
+                        range=Range(**{k: v for k, v in value.items() if k in ("gt", "gte", "lt", "lte")}),
+                    )
+                )
+                continue
+
+            # If you reach here, your API is sending a filter shape you don’t handle
+            raise ValueError(f"Unsupported filter value for {key}: {value!r}")
+
+        return Filter(must=conditions) if conditions else None
+
+
     def upsert(self, items: List[EmbeddedChunk]) -> None:
         """
         Insert or update embedded chunks in the underlying store.
@@ -209,46 +259,23 @@ class QDrantVectorStore(VectorStore):
             List of SearchResult objects
         """
         # Build filter if needed
-        query_filter = None
-        if hasattr(query, 'filters') and query.filters:
-            conditions = []
-            for key, value in query.filters.items():
-                conditions.append(
-                    FieldCondition(
-                        key=f"metadata.{key}",
-                        match=MatchValue(value=value)
-                    )
-                )
-            if conditions:
-                query_filter = Filter(must=conditions)
-        
+        query_filter = self._build_qdrant_filter(getattr(query, "filters", None))
+
         # Determine limit
         limit = getattr(query, 'top_k', 10)
         
         # Perform search
-        # search_results = self.client.search(
-        #     collection_name=self.collection_name,
-        #     query_vector=qvec,
-        #     query_filter=query_filter,
-        #     limit=limit,
-        #     with_payload=True,
-        #     with_vectors=False  # Set to True if you need vectors in results
-        # )
-
         search_results = self.client.query_points(
             collection_name=self.collection_name,
-            query=qvec,
+            query=qvec.values,
             query_filter=query_filter,
             limit=limit,
 
         )
-
-        print(f"\n\nSearch results: \n{search_results}\n\n")
-
         
         # Convert to SearchResult objects
         results = []
-        for hit in search_results:
+        for hit in search_results.points:
             result = SearchResult(
                 doc_id=hit.payload.get("doc_id"),
                 chunk_id=hit.payload.get("chunk_id"),
