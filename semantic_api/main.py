@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI
 from dotenv import load_dotenv
 
-from semantic_api.routes import documents, search, test
+from semantic_api.routes import documents, search
 
 
 load_dotenv()  
@@ -20,5 +20,4 @@ async def health() -> dict:
 
 app.include_router(documents.router)
 app.include_router(search.router)
-app.include_router(test.router)
 
