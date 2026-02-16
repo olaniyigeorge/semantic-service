@@ -17,7 +17,7 @@ from fastapi import (
 from semantic_api.deps import get_document_normalizer, get_index_pipeline
 from semantic_api.schemas import IngestRequest, IngestResponse
 from semantic_core.ingest.normalizer import DocumentNormalizer
-from semantic_core.pipeline.indexer import IndexPipeline
+from semantic_core.pipelines.indexer import IndexPipeline
 
 router = APIRouter(prefix="/v1/documents", tags=["documents"])
 

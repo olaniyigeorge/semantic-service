@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from semantic_api.deps import get_search_pipeline
 from semantic_core.models import SearchQuery, SearchResult
-from semantic_core.pipeline.searcher import SearchPipeline
+from semantic_core.pipelines.searcher import SearchPipeline
 
 router = APIRouter(prefix="/search", tags=["search"])
 

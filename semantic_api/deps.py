@@ -9,8 +9,8 @@ from qdrant_client import QdrantClient
 
 from semantic_core.embeddings.gemini import GeminiEmbeddings
 from semantic_core.ingest.normalizer import DocumentNormalizer
-from semantic_core.pipeline.searcher import SearchPipeline
-from semantic_core.pipeline.indexer import IndexPipeline
+from semantic_core.pipelines.searcher import SearchPipeline
+from semantic_core.pipelines.indexer import IndexPipeline
 from semantic_core.vectorstores.base import VectorStore
 from semantic_core.vectorstores.faiss_store import FaissVectorStore
 from semantic_core.chunking.base import Chunker, build_default_chunker
