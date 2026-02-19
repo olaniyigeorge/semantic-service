@@ -289,6 +289,7 @@ class QDrantVectorStore(VectorStore):
                 metadata=hit.payload.get("metadata", {}),
                 vector=hit.vector if hasattr(hit, "vector") else None,
             )
+            print(f"\nSearch hit: chunk_id={result.chunk_id}, text={result.text[:50]}..., \nscore={result.score}\n")
             results.append(result)
 
         return results
